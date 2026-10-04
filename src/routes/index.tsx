@@ -212,7 +212,7 @@ function HudStudio() {
   );
 }
 
-function HudPreview({ settings, logo }: { settings: Settings; logo?: string }) {
+function HudPreview({ settings, logo }: { settings: Settings; logo: string | undefined }) {
   const previewStyle = { "--hud-accent": settings.accent, opacity: settings.opacity / 100, transform: `scale(${settings.scale / 100})`, borderRadius: settings.radius } as React.CSSProperties;
   const compact = settings.layout === "compact";
   return <div className="absolute inset-0 text-foreground" style={previewStyle}>
