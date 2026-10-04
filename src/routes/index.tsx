@@ -28,7 +28,7 @@ import {
   Utensils,
   Wifi,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from "react";
 
 import cityPreview from "@/assets/hud-city-preview.jpg";
 import { Button } from "@/components/ui/button";
@@ -136,8 +136,8 @@ function HudStudio() {
     window.setTimeout(() => setSaved(false), 1800);
   };
 
-  const setText = (key: keyof Settings, value: string) => {
-    update(key, value.slice(0, 30) as never);
+  const setText = (key: "serverName" | "welcomeText" | "speedUnit" | "healthLabel" | "armorLabel" | "hungerLabel" | "thirstLabel" | "pingLabel" | "idLabel", value: string) => {
+    update(key, value.replace(/[<>]/g, "").slice(0, 30));
   };
 
   const addCustomBox = () => {
@@ -159,9 +159,10 @@ function HudStudio() {
     zip.file("fxmanifest.lua", `fx_version 'cerulean'\ngame 'gta5'\nauthor 'b7t dev'\ndescription 'Custom HUD generated with b7t HUD Studio'\nversion '1.0.0'\n\nui_page 'html/index.html'\nfiles { 'html/index.html', 'html/style.css', 'html/app.js', 'html/config.json', 'html/logo.*' }\nclient_script 'client.lua'\n`);
     zip.file("client.lua", `CreateThread(function()\n  while true do\n    Wait(250)\n    local ped = PlayerPedId()\n    SendNUIMessage({ action = 'update', health = math.max(0, GetEntityHealth(ped) - 100), armor = GetPedArmour(ped), speed = math.floor(GetEntitySpeed(ped) * 3.6), playerId = GetPlayerServerId(PlayerId()) })\n  end\nend)\n`);
     zip.file("html/config.json", JSON.stringify(config, null, 2));
-    zip.file("html/index.html", `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"><title>b7t HUD</title></head><body><div id="brand"><img id="logo"><div><small id="welcome"></small><strong id="server"></strong></div></div><div id="info"></div><div id="status"></div><div id="speed"><b>0</b><small></small></div><footer>b7t dev</footer><script src="app.js"></script></body></html>`);
+    zip.file("html/index.html", `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"><title>b7t HUD</title></head><body><div id="brand"><img id="logo"><div><small id="welcome"></small><strong id="server"></strong></div></div><div id="info"></div><div id="status"></div><div id="speed"><b>0</b><small></small></div><footer>b7t dev</footer><script src="app.js"></script><script src="logo-loader.js"></script></body></html>`);
     zip.file("html/style.css", `*{box-sizing:border-box}body{margin:0;overflow:hidden;color:#fff;font-family:Arial,sans-serif}.box,#info span{background:rgba(10,12,16,var(--opacity));border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:10px 12px}#brand{position:fixed;right:2vw;top:2vw;display:flex;align-items:center;gap:10px}#brand img{width:52px;height:52px;object-fit:contain;display:none}#brand small,#brand strong{display:block}#info{position:fixed;left:2vw;top:2vw;display:flex;gap:6px}#status{position:fixed;right:2vw;bottom:2vw;display:flex;gap:7px}.box b{color:var(--accent);margin-left:5px}#speed{position:fixed;left:50%;bottom:2vw;transform:translateX(-50%);font-size:42px;font-weight:800}#speed small{font-size:11px;margin-right:6px}footer{position:fixed;bottom:5px;left:50%;transform:translateX(-50%);font-size:9px;opacity:.45}`);
-    zip.file("html/app.js", `let config={};fetch('config.json').then(r=>r.json()).then(c=>{config=c;document.documentElement.style.setProperty('--accent',c.accent);document.documentElement.style.setProperty('--opacity',c.opacity/100);document.documentElement.style.setProperty('--radius',c.radius+'px');document.body.style.fontFamily=c.font;welcome.textContent=c.welcomeText;server.textContent=c.serverName;document.querySelector('#speed small').textContent=c.speedUnit;render({health:100,armor:100,speed:0,playerId:1})});function render(d){info.innerHTML='<span>'+config.pingLabel+' 48 MS</span><span>'+config.idLabel+' '+d.playerId+'</span>';status.innerHTML=[[config.healthLabel,d.health],[config.armorLabel,d.armor],[config.hungerLabel,84],[config.thirstLabel,63],...(config.customBoxes||[]).map(x=>[x.label,x.value])].map(x=>'<div class="box"><b>'+x[1]+'</b>'+x[0]+'</div>').join('');document.querySelector('#speed b').textContent=d.speed}window.addEventListener('message',e=>{if(e.data.action==='update')render(e.data)});`);
+    zip.file("html/app.js", `let config={};const add=(parent,tag,text,cls)=>{const el=document.createElement(tag);el.textContent=String(text);if(cls)el.className=cls;parent.appendChild(el);return el};fetch('config.json').then(r=>r.json()).then(c=>{config=c;document.documentElement.style.setProperty('--accent',c.accent);document.documentElement.style.setProperty('--opacity',c.opacity/100);document.documentElement.style.setProperty('--radius',c.radius+'px');document.body.style.fontFamily=c.font;welcome.textContent=c.welcomeText;server.textContent=c.serverName;document.querySelector('#speed small').textContent=c.speedUnit;render({health:100,armor:100,speed:0,playerId:1})});function render(d){info.replaceChildren();add(info,'span',config.pingLabel+' 48 MS');add(info,'span',config.idLabel+' '+d.playerId);status.replaceChildren();[[config.healthLabel,d.health],[config.armorLabel,d.armor],[config.hungerLabel,84],[config.thirstLabel,63],...(config.customBoxes||[]).map(x=>[x.label,x.value])].forEach(x=>{const box=add(status,'div','', 'box');add(box,'b',x[1]);box.append(document.createTextNode(x[0]))});document.querySelector('#speed b').textContent=String(d.speed)}window.addEventListener('message',e=>{if(e.data.action==='update')render(e.data)});`);
+    zip.file("html/logo-loader.js", "");
     if (logo) {
       const match = logo.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
       if (match?.[1] && match[2]) {
@@ -295,22 +296,23 @@ function HudStudio() {
 }
 
 function HudPreview({ settings, logo }: { settings: Settings; logo: string | undefined }) {
-  const previewStyle = { "--hud-accent": settings.accent, opacity: settings.opacity / 100, transform: `scale(${settings.scale / 100})`, borderRadius: settings.radius } as React.CSSProperties;
+  const previewStyle = { "--hud-accent": settings.accent, opacity: settings.opacity / 100, transform: `scale(${settings.scale / 100})`, borderRadius: settings.radius } as CSSProperties;
   const compact = settings.layout === "compact";
   return <div className="absolute inset-0 text-foreground" style={previewStyle}>
     <div className="absolute right-3 top-3 flex items-center gap-2 sm:right-5 sm:top-5">
-      <div className="text-left"><div className="text-[8px] text-foreground/60 sm:text-[11px]">WELCOME TO</div><div className="text-xs font-bold sm:text-lg">B7T ROLEPLAY</div></div>
+      <div className="text-left"><div className="text-[8px] text-foreground/60 sm:text-[11px]">{settings.welcomeText}</div><div className="text-xs font-bold sm:text-lg">{settings.serverName}</div></div>
       <div className="flex h-8 w-8 items-center justify-center rounded-md border border-foreground/15 bg-background/70 backdrop-blur sm:h-11 sm:w-11">{logo ? <img src={logo} alt="شعار السيرفر" className="h-full w-full object-contain p-1" /> : <Flame size={22} style={{ color: settings.accent }} />}</div>
     </div>
     <div className={cn("absolute top-3 flex gap-1.5 text-[7px] sm:top-5 sm:text-[10px]", compact ? "right-1/2 translate-x-1/2" : "left-3 sm:left-5")}>
-      <Pill icon={Wifi} text="48 MS" /><Pill icon={Shield} text="ID 204" /><Pill icon={Bell} text="12:42" />
+      <Pill icon={Wifi} text={`${settings.pingLabel} 48 MS`} /><Pill icon={Shield} text={`${settings.idLabel} 204`} /><Pill icon={Bell} text="12:42" />
     </div>
     {settings.showStatus && <div className={cn("absolute flex gap-1.5", settings.layout === "center" ? "bottom-5 left-1/2 -translate-x-1/2" : "bottom-4 right-3 sm:bottom-6 sm:right-5")}>
-      <Status icon={HeartPulse} value="96" color="var(--hud-accent)" /><Status icon={Shield} value="72" color="oklch(0.7 0.16 230)" /><Status icon={Utensils} value="84" color="oklch(0.78 0.17 75)" /><Status icon={Droplets} value="63" color="oklch(0.72 0.15 220)" />
+      <Status icon={HeartPulse} label={settings.healthLabel} value="96" color="var(--hud-accent)" /><Status icon={Shield} label={settings.armorLabel} value="72" color="oklch(0.7 0.16 230)" /><Status icon={Utensils} label={settings.hungerLabel} value="84" color="oklch(0.78 0.17 75)" /><Status icon={Droplets} label={settings.thirstLabel} value="63" color="oklch(0.72 0.15 220)" />
+      {settings.customBoxes.map((box) => <Status key={box.id} icon={Sparkles} label={box.label} value={box.value} color="var(--hud-accent)" />)}
     </div>}
     {settings.showMinimap && <div className={cn("absolute bottom-4 h-[20%] w-[19%] min-w-20 overflow-hidden border border-foreground/15 bg-background/65 backdrop-blur-sm sm:bottom-6", compact ? "right-3 sm:right-5" : "left-3 sm:left-5")} style={{ borderRadius: settings.radius }}><div className="absolute inset-0 opacity-30" style={{ backgroundImage: "linear-gradient(35deg, transparent 45%, var(--hud-accent) 46%, var(--hud-accent) 49%, transparent 50%), linear-gradient(125deg, transparent 45%, currentColor 46%, currentColor 48%, transparent 49%)", backgroundSize: "45px 45px" }} /><MapPin className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full" size={18} style={{ color: settings.accent }} /></div>}
     <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-end gap-2 sm:bottom-6">
-      <div className="text-right"><span className="text-2xl font-bold leading-none sm:text-5xl">128</span><span className="mr-1 text-[7px] text-foreground/60 sm:text-[10px]">KM/H</span></div>
+      <div className="text-right"><span className="text-2xl font-bold leading-none sm:text-5xl">128</span><span className="mr-1 text-[7px] text-foreground/60 sm:text-[10px]">{settings.speedUnit}</span></div>
       <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 bg-background/65 text-xs font-bold sm:h-10 sm:w-10">D</div>
       <Gauge size={20} style={{ color: settings.accent }} />
     </div>
@@ -319,8 +321,9 @@ function HudPreview({ settings, logo }: { settings: Settings; logo: string | und
   </div>;
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: typeof Palette; children: React.ReactNode }) { return <section><h2 className="mb-3 flex items-center gap-2 text-sm font-bold"><Icon size={16} className="text-primary" />{title}</h2>{children}</section>; }
+function Section({ title, icon: Icon, children }: { title: string; icon: typeof Palette; children: ReactNode }) { return <section><h2 className="mb-3 flex items-center gap-2 text-sm font-bold"><Icon size={16} className="text-primary" />{title}</h2>{children}</section>; }
 function Range({ label, value, min, max, suffix, onChange }: { label: string; value: number; min: number; max: number; suffix: string; onChange: (v: number) => void }) { return <div><div className="mb-2 flex justify-between text-xs"><span className="text-muted-foreground">{label}</span><span>{value}{suffix}</span></div><input aria-label={label} type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-1.5 w-full cursor-pointer accent-primary" /></div>; }
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <button onClick={() => onChange(!checked)} className="mb-2 flex w-full items-center justify-between rounded-md border border-border bg-secondary px-3 py-3 text-sm"><span>{label}</span><span className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-primary" : "bg-muted")}><span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-foreground transition-all", checked ? "right-0.5" : "right-[18px]")} /></span></button>; }
 function Pill({ icon: Icon, text }: { icon: typeof Wifi; text: string }) { return <span className="flex items-center gap-1 rounded border border-foreground/15 bg-background/65 px-1.5 py-1 backdrop-blur"><Icon size={10} />{text}</span>; }
-function Status({ icon: Icon, value, color }: { icon: typeof HeartPulse; value: string; color: string }) { return <div className="flex h-8 min-w-9 items-center gap-1 rounded border border-foreground/15 bg-background/70 px-1.5 backdrop-blur sm:h-10 sm:min-w-12 sm:px-2"><Icon size={13} style={{ color }} /><span className="text-[8px] font-bold sm:text-[10px]">{value}</span></div>; }
+function Status({ icon: Icon, label, value, color }: { icon: typeof HeartPulse; label: string; value: string; color: string }) { return <div className="flex h-8 min-w-9 items-center gap-1 rounded border border-foreground/15 bg-background/70 px-1.5 backdrop-blur sm:h-10 sm:min-w-12 sm:px-2" title={label}><Icon size={13} style={{ color }} /><span className="text-[8px] font-bold sm:text-[10px]">{value}</span><span className="hidden max-w-16 truncate text-[7px] text-foreground/60 xl:block">{label}</span></div>; }
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="grid grid-cols-[86px_1fr] items-center gap-2 text-[11px] text-muted-foreground"><span>{label}</span><input aria-label={label} value={value} maxLength={30} onChange={(e) => onChange(e.target.value)} className="h-9 min-w-0 rounded border border-border bg-input px-2 text-xs text-foreground outline-none focus:border-primary" /></label>; }
