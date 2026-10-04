@@ -15,12 +15,15 @@ import {
   MapPin,
   Mic2,
   Palette,
+  Package,
+  Plus,
   RotateCcw,
   Save,
   Settings2,
   Shield,
   Sparkles,
   Type,
+  Trash2,
   Upload,
   Utensils,
   Wifi,
@@ -41,7 +44,19 @@ type Settings = {
   showMinimap: boolean;
   showVoice: boolean;
   showStatus: boolean;
+  serverName: string;
+  welcomeText: string;
+  speedUnit: string;
+  healthLabel: string;
+  armorLabel: string;
+  hungerLabel: string;
+  thirstLabel: string;
+  pingLabel: string;
+  idLabel: string;
+  customBoxes: CustomBox[];
 };
+
+type CustomBox = { id: string; label: string; value: string };
 
 const defaults: Settings = {
   accent: "#ff493d",
@@ -53,13 +68,23 @@ const defaults: Settings = {
   showMinimap: true,
   showVoice: true,
   showStatus: true,
+  serverName: "B7T ROLEPLAY",
+  welcomeText: "WELCOME TO",
+  speedUnit: "KM/H",
+  healthLabel: "الصحة",
+  armorLabel: "الدرع",
+  hungerLabel: "الجوع",
+  thirstLabel: "العطش",
+  pingLabel: "PING",
+  idLabel: "ID",
+  customBoxes: [],
 };
 
 const tabs = [
   { id: "appearance", label: "المظهر", icon: Palette },
   { id: "layout", label: "التوزيع", icon: LayoutGrid },
   { id: "elements", label: "العناصر", icon: Eye },
-  { id: "typography", label: "الخطوط", icon: Type },
+  { id: "typography", label: "النصوص", icon: Type },
 ];
 
 export const Route = createFileRoute("/")({
@@ -81,6 +106,7 @@ function HudStudio() {
   const [activeTab, setActiveTab] = useState("appearance");
   const [logo, setLogo] = useState<string>();
   const [saved, setSaved] = useState(false);
+  const [packing, setPacking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -110,6 +136,51 @@ function HudStudio() {
     window.setTimeout(() => setSaved(false), 1800);
   };
 
+  const setText = (key: keyof Settings, value: string) => {
+    update(key, value.slice(0, 30) as never);
+  };
+
+  const addCustomBox = () => {
+    if (settings.customBoxes.length >= 8) return;
+    update("customBoxes", [...settings.customBoxes, { id: crypto.randomUUID(), label: "عنصر جديد", value: "100" }]);
+  };
+
+  const updateCustomBox = (id: string, field: "label" | "value", value: string) => {
+    update("customBoxes", settings.customBoxes.map((box) => box.id === id ? { ...box, [field]: value.slice(0, 24) } : box));
+  };
+
+  const removeCustomBox = (id: string) => update("customBoxes", settings.customBoxes.filter((box) => box.id !== id));
+
+  const downloadResource = async () => {
+    setPacking(true);
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    const config = { creator: "b7t dev", ...settings };
+    zip.file("fxmanifest.lua", `fx_version 'cerulean'\ngame 'gta5'\nauthor 'b7t dev'\ndescription 'Custom HUD generated with b7t HUD Studio'\nversion '1.0.0'\n\nui_page 'html/index.html'\nfiles { 'html/index.html', 'html/style.css', 'html/app.js', 'html/config.json', 'html/logo.*' }\nclient_script 'client.lua'\n`);
+    zip.file("client.lua", `CreateThread(function()\n  while true do\n    Wait(250)\n    local ped = PlayerPedId()\n    SendNUIMessage({ action = 'update', health = math.max(0, GetEntityHealth(ped) - 100), armor = GetPedArmour(ped), speed = math.floor(GetEntitySpeed(ped) * 3.6), playerId = GetPlayerServerId(PlayerId()) })\n  end\nend)\n`);
+    zip.file("html/config.json", JSON.stringify(config, null, 2));
+    zip.file("html/index.html", `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"><title>b7t HUD</title></head><body><div id="brand"><img id="logo"><div><small id="welcome"></small><strong id="server"></strong></div></div><div id="info"></div><div id="status"></div><div id="speed"><b>0</b><small></small></div><footer>b7t dev</footer><script src="app.js"></script></body></html>`);
+    zip.file("html/style.css", `*{box-sizing:border-box}body{margin:0;overflow:hidden;color:#fff;font-family:Arial,sans-serif}.box,#info span{background:rgba(10,12,16,var(--opacity));border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:10px 12px}#brand{position:fixed;right:2vw;top:2vw;display:flex;align-items:center;gap:10px}#brand img{width:52px;height:52px;object-fit:contain;display:none}#brand small,#brand strong{display:block}#info{position:fixed;left:2vw;top:2vw;display:flex;gap:6px}#status{position:fixed;right:2vw;bottom:2vw;display:flex;gap:7px}.box b{color:var(--accent);margin-left:5px}#speed{position:fixed;left:50%;bottom:2vw;transform:translateX(-50%);font-size:42px;font-weight:800}#speed small{font-size:11px;margin-right:6px}footer{position:fixed;bottom:5px;left:50%;transform:translateX(-50%);font-size:9px;opacity:.45}`);
+    zip.file("html/app.js", `let config={};fetch('config.json').then(r=>r.json()).then(c=>{config=c;document.documentElement.style.setProperty('--accent',c.accent);document.documentElement.style.setProperty('--opacity',c.opacity/100);document.documentElement.style.setProperty('--radius',c.radius+'px');document.body.style.fontFamily=c.font;welcome.textContent=c.welcomeText;server.textContent=c.serverName;document.querySelector('#speed small').textContent=c.speedUnit;render({health:100,armor:100,speed:0,playerId:1})});function render(d){info.innerHTML='<span>'+config.pingLabel+' 48 MS</span><span>'+config.idLabel+' '+d.playerId+'</span>';status.innerHTML=[[config.healthLabel,d.health],[config.armorLabel,d.armor],[config.hungerLabel,84],[config.thirstLabel,63],...(config.customBoxes||[]).map(x=>[x.label,x.value])].map(x=>'<div class="box"><b>'+x[1]+'</b>'+x[0]+'</div>').join('');document.querySelector('#speed b').textContent=d.speed}window.addEventListener('message',e=>{if(e.data.action==='update')render(e.data)});`);
+    if (logo) {
+      const match = logo.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+      if (match?.[1] && match[2]) {
+        const ext = match[1] === "image/jpeg" ? "jpg" : match[1].split("/")[1];
+        zip.file(`html/logo.${ext}`, match[2], { base64: true });
+        zip.file("html/logo-loader.js", `document.querySelector('#logo').src='logo.${ext}';document.querySelector('#logo').style.display='block';`);
+      }
+    }
+    zip.file("README.txt", "b7t HUD — ضع المجلد داخل resources ثم أضف ensure b7t_hud إلى server.cfg\nحقوق التطوير: b7t dev");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "b7t_hud_fivem.zip";
+    link.click();
+    URL.revokeObjectURL(url);
+    setPacking(false);
+  };
+
   const exportSettings = () => {
     const data = JSON.stringify({ creator: "b7t dev", ...settings }, null, 2);
     const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
@@ -134,7 +205,8 @@ function HudStudio() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => setSettings(defaults)} title="استعادة الافتراضي"><RotateCcw size={17} /></Button>
-          <Button variant="secondary" onClick={exportSettings}><Download size={16} /><span className="hidden sm:inline">تصدير الإعدادات</span></Button>
+          <Button variant="secondary" onClick={exportSettings}><Download size={16} /><span className="hidden sm:inline">JSON</span></Button>
+          <Button variant="secondary" onClick={downloadResource} disabled={packing}><Package size={16} /><span className="hidden sm:inline">{packing ? "جاري التجهيز" : "تحميل السكربت"}</span></Button>
           <Button onClick={save}><Save size={16} />{saved ? "تم الحفظ" : "حفظ"}</Button>
         </div>
       </header>
@@ -177,16 +249,26 @@ function HudStudio() {
               <div className="space-y-2">{([['corners','موزع على الزوايا'],['compact','مجموعة مدمجة'],['center','توسيط سفلي']] as const).map(([value,label]) => <button key={value} onClick={() => update("layout", value)} className={cn("flex w-full items-center justify-between rounded-md border px-3 py-3 text-sm", settings.layout === value ? "border-primary bg-primary/10 text-primary" : "border-border bg-secondary text-muted-foreground")}><span>{label}</span><span className="h-3 w-3 rounded-full border border-current p-0.5">{settings.layout === value && <span className="block h-full w-full rounded-full bg-current" />}</span></button>)}</div>
             </Section>}
 
-            {activeTab === "elements" && <Section title="إظهار وإخفاء" icon={Eye}>
-              <Toggle label="خريطة مصغرة" checked={settings.showMinimap} onChange={(v) => update("showMinimap", v)} />
-              <Toggle label="مؤشر الصوت" checked={settings.showVoice} onChange={(v) => update("showVoice", v)} />
-              <Toggle label="مؤشرات الحالة" checked={settings.showStatus} onChange={(v) => update("showStatus", v)} />
-            </Section>}
+            {activeTab === "elements" && <>
+              <Section title="إظهار وإخفاء" icon={Eye}>
+                <Toggle label="خريطة مصغرة" checked={settings.showMinimap} onChange={(v) => update("showMinimap", v)} />
+                <Toggle label="مؤشر الصوت" checked={settings.showVoice} onChange={(v) => update("showVoice", v)} />
+                <Toggle label="مؤشرات الحالة" checked={settings.showStatus} onChange={(v) => update("showStatus", v)} />
+              </Section>
+              <Section title="المربعات المخصصة" icon={Plus}>
+                <div className="space-y-2">{settings.customBoxes.map((box) => <div key={box.id} className="grid grid-cols-[1fr_70px_32px] gap-2"><input aria-label="اسم العنصر" value={box.label} onChange={(e) => updateCustomBox(box.id, "label", e.target.value)} className="h-9 min-w-0 rounded border border-border bg-input px-2 text-xs outline-none focus:border-primary" /><input aria-label="قيمة العنصر" value={box.value} onChange={(e) => updateCustomBox(box.id, "value", e.target.value)} className="h-9 min-w-0 rounded border border-border bg-input px-2 text-xs outline-none focus:border-primary" /><Button variant="icon" size="icon" onClick={() => removeCustomBox(box.id)} title="حذف العنصر"><Trash2 size={14} /></Button></div>)}</div>
+                <Button variant="secondary" className="mt-3 w-full" onClick={addCustomBox} disabled={settings.customBoxes.length >= 8}><Plus size={15} />إضافة مربع جديد</Button>
+              </Section>
+            </>}
 
-            {activeTab === "typography" && <Section title="نوع الخط" icon={Type}>
-              <div className="relative"><select value={settings.font} onChange={(e) => update("font", e.target.value)} className="h-11 w-full appearance-none rounded-md border border-border bg-input px-3 text-sm outline-none focus:border-primary"><option>Cairo</option><option>Rajdhani</option><option>Arial</option><option>Tahoma</option></select><ChevronDown className="pointer-events-none absolute left-3 top-3.5" size={16} /></div>
-              <p className="mt-4 rounded-md border border-border bg-secondary p-4 text-center text-lg" style={{ fontFamily: settings.font }}>مرحبا بك في السيرفر</p>
-            </Section>}
+            {activeTab === "typography" && <>
+              <Section title="نوع الخط" icon={Type}>
+                <div className="relative"><select value={settings.font} onChange={(e) => update("font", e.target.value)} className="h-11 w-full appearance-none rounded-md border border-border bg-input px-3 text-sm outline-none focus:border-primary"><option>Cairo</option><option>Rajdhani</option><option>Arial</option><option>Tahoma</option></select><ChevronDown className="pointer-events-none absolute left-3 top-3.5" size={16} /></div>
+              </Section>
+              <Section title="نصوص الهود" icon={Type}>
+                <div className="space-y-2"><TextField label="اسم السيرفر" value={settings.serverName} onChange={(v) => setText("serverName", v)} /><TextField label="النص العلوي" value={settings.welcomeText} onChange={(v) => setText("welcomeText", v)} /><TextField label="وحدة السرعة" value={settings.speedUnit} onChange={(v) => setText("speedUnit", v)} /><TextField label="اسم الصحة" value={settings.healthLabel} onChange={(v) => setText("healthLabel", v)} /><TextField label="اسم الدرع" value={settings.armorLabel} onChange={(v) => setText("armorLabel", v)} /><TextField label="اسم الجوع" value={settings.hungerLabel} onChange={(v) => setText("hungerLabel", v)} /><TextField label="اسم العطش" value={settings.thirstLabel} onChange={(v) => setText("thirstLabel", v)} /><TextField label="اسم البنق" value={settings.pingLabel} onChange={(v) => setText("pingLabel", v)} /><TextField label="اسم الآيدي" value={settings.idLabel} onChange={(v) => setText("idLabel", v)} /></div>
+              </Section>
+            </>}
           </div>
           <div className="mx-5 mb-5 border-t border-border pt-4 text-center text-[11px] text-muted-foreground">DESIGNED & DEVELOPED BY <strong className="text-primary">b7t dev</strong></div>
         </aside>
