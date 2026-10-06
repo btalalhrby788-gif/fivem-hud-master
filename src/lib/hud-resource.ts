@@ -174,7 +174,7 @@ export async function buildResource(settings: Settings, logo?: string) {
   root.file('server.lua', serverLua);
   root.file('html/index.html', '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>b7t HUD</title><link rel="stylesheet" href="style.css"></head><body><div id="hud" hidden></div><script src="app.js"></script></body></html>');
   root.file('html/style.css', hudCss);
-  root.file('html/app.js', hudJs.replace("v===undefined||v===null", "v===undefined||v===null||v===false"));
+  root.file('html/app.js', hudJs);
   await Promise.all(Object.entries(fontFiles).map(async ([name, url]) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error('تعذر تضمين خطوط الهود');
