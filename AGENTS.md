@@ -10,3 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Keep HUD customization browser-local and exportable as JSON so the editor stays usable without a backend.
+- Share the HUD document, renderer and styling between the sandboxed editor preview and exported FiveM NUI to prevent visual drift.
+- Store individual HUD positions as normalized top-left coordinates so dragging survives export and resolution changes.
+- Isolate FiveM resource generation and Lua adapters from the editor route so actual player integrations stay reviewable.
+- Bundle HUD font files in the exported resource so typography does not depend on external network access.
