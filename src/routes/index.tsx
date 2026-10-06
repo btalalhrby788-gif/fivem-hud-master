@@ -237,7 +237,7 @@ function HudStudio() {
 
 const previewValues = { health: 96, armor: 72, hunger: 84, thirst: 63, speed: 128, playerId: 204, ping: 48, time: '12:42', gear: 'D', ammo: 30 };
 const hudDocument = previewDocument();
-function HudPreview({ settings, logo, onPosition }: { settings: Settings; logo?: string; onPosition: (id: string, position: Position) => void }) {
+function HudPreview({ settings, logo, onPosition }: { settings: Settings; logo: string | undefined; onPosition: (id: string, position: Position) => void }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const stateRef = useRef({ settings, logo, onPosition });
   stateRef.current = { settings, logo, onPosition };
@@ -257,7 +257,7 @@ function HudPreview({ settings, logo, onPosition }: { settings: Settings; logo?:
     window.addEventListener('message', receive);
     return () => window.removeEventListener('message', receive);
   }, []);
-  return <iframe ref={frameRef} title="معاينة الهود" srcDoc={hudDocument} onLoad={configure} className="absolute inset-0 h-full w-full border-0" />;
+  return <iframe ref={frameRef} title="معاينة الهود" sandbox="allow-scripts" srcDoc={hudDocument} onLoad={configure} className="absolute inset-0 h-full w-full border-0" />;
 }
 
 function Section({ title, icon: Icon, children }: { title: string; icon: typeof Palette; children: ReactNode }) { return <section><h2 className="mb-3 flex items-center gap-2 text-sm font-bold"><Icon size={16} className="text-primary" />{title}</h2>{children}</section>; }
